@@ -220,8 +220,61 @@ class BinaryNode(Expression):
     # TODO: what other properties could you need? Precedence, associativity, identity, etc.
             
     def __eq__(self, other):
-        if type(self) == type(other):
-            return self.lhs == other.lhs and self.rhs == other.rhs
+        if type(self) == type(other): # equivalent to root node being the same
+            if self.op_symbol in ['+','*']: 
+                if isinstance(self.lhs,BinaryNode) and isinstance(self.rhs,BinaryNode) and\
+                   isinstance(other.lhs,BinaryNode) and isinstance(other.rhs,BinaryNode) and\
+                   self.op_symbol==self.lhs.op_symbol and\
+                   self.op_symbol==self.rhs.op_symbol and\
+                   self.op_symbol==other.lhs.op_symbol and\
+                   self.op_symbol==other.rhs.op_symbol: # This is the case: (a+b)+(c+d)=(k+l)+(m+n) (LR-LR)
+                    return (self.lhs == other.lhs and self.rhs == other.rhs) or\
+                           (self.lhs == other.rhs and self.rhs == other.lhs) or\
+                           (self.lhs == type(self)(other.lhs.lhs,other.rhs.lhs) and\
+                            self.rhs == type(self)(other.lhs.rhs,other.rhs.rhs)) or\
+                           (self.lhs == type(self)(other.lhs.rhs,other.rhs.rhs) and\
+                            self.rhs == type(self)(other.lhs.lhs,other.rhs.lhs)) or\
+                           (self.lhs == type(self)(other.lhs.lhs,other.rhs.rhs) and\
+                            self.rhs == type(self)(other.lhs.rhs,other.rhs.lhs)) or\
+                           (self.lhs == type(self)(other.lhs.rhs,other.rhs.lhs) and\
+                            self.rhs == type(self)(other.lhs.lhs,other.rhs.rhs))
+                elif isinstance(self.lhs,BinaryNode) and isinstance(other.lhs,BinaryNode) and\
+                     self.op_symbol==self.lhs.op_symbol and\
+                     self.op_symbol==other.lhs.op_symbol: # This is the case: (a+b)+c=(x+y)+z (L-L)
+                    return (self.lhs == other.lhs and self.rhs == other.rhs) or\
+                           (self.lhs == type(self)(other.lhs.lhs) and\
+                           self.rhs == other.lhs.rhs) or\
+                           (self.lhs == type(self)(other.lhs.rhs) and\
+                           self.rhs == other.lhs.lhs)
+                elif isinstance(self.rhs,BinaryNode) and isinstance(other.rhs,BinaryNode) and\
+                     self.op_symbol==self.rhs.op_symbol and\
+                     self.op_symbol==other.rhs.op_symbol: # This is the case: a+(b+c)=x+(y+z) (R-R)
+                    return (self.lhs == other.lhs and self.rhs == other.rhs) or\
+                           (self.rhs == type(self)(other.rhs.lhs) and\
+                           self.lhs == other.lhs.rhs) or\
+                           (self.rhs == type(self)(other.rhs.rhs) and\
+                           self.lhs == other.lhs.lhs)
+                elif isinstance(self.lhs,BinaryNode) and isinstance(other.rhs,BinaryNode) and\
+                     self.op_symbol==self.lhs.op_symbol and\
+                     self.op_symbol==other.rhs.op_symbol: # This is the case: (a+b)+c=x+(y+z) (L-R)
+                    return (self.lhs == other.rhs and self.rhs == other.lhs) or\
+                           (self.lhs == type(self)(other.rhs.lhs,other.lhs) and\
+                           self.rhs == other.rhs.rhs) or\
+                           (self.lhs == type(self)(other.rhs.rhs,other.lhs) and\
+                           self.rhs == other.rhs.lhs)
+                elif isinstance(self.rhs,BinaryNode) and isinstance(other.lhs,BinaryNode) and\
+                     self.op_symbol==self.rhs.op_symbol and\
+                     self.op_symbol==other.lhs.op_symbol: # This is the case: a+(b+c)=(x+y)+z (R-L)
+                    return (self.lhs == other.rhs and self.rhs == other.lhs) or\
+                           (self.rhs == type(self)(other.lhs.lhs,other.rhs) and\
+                           self.lhs == other.lhs.rhs) or\
+                           (self.rhs == type(self)(other.lhs.rhs,other.rhs) and\
+                           self.lhs == other.lhs.lhs)
+                else: # just commutative case
+                    return (self.lhs == other.lhs and self.rhs == other.rhs) or\
+                           (self.lhs == other.rhs and self.rhs == other.lhs)
+            else:
+                return self.lhs == other.lhs and self.rhs == other.rhs 
         else:
             return False
             
