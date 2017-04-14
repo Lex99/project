@@ -261,11 +261,8 @@ class BinaryNode(Expression):
                 Right="(%s)" % (rstring)
             elif Prec[self.rhs.op_symbol]==Prec[self.op_symbol]:
                 if self.rhs.op_symbol in ['-','/']:
-                    # Changes tree (operator), might not be a good idea
-                    # Alternative: keep brackets in this specific case
-                    self.rhs.op_symbol = Invert[self.rhs.op_symbol]
-                    rstring = str(self.rhs)
-                    Right="%s" % (rstring)
+                    # Keep brackets in this specific case
+                    Right="(%s)" % (rstring)
                 else:
                     Right="%s" % (rstring)
             else:
