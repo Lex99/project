@@ -39,8 +39,11 @@ def isnumber(string):
 # check if a string represents an integer value        
 def isint(string):
     try:
-        int(string)
-        return True
+        float(string)
+        if float(string).is_integer():
+            return True
+        else:
+            return False
     except ValueError:
         return False
     except TypeError:
@@ -188,23 +191,61 @@ class Expression():
     # Evaluates the expression, values of variables are loaded through dictionary
     # Uses inorder read of tree
     def evaluate(self,Dic={}):
+        Prec={'+':1,'-':1,'*':2,'/':2,'**':3,}
+        oplist = ['+','-','*','/','**']
+        Right=''
+        Left=''
+        # 1: Check is self is a number or variable
         if isint(self):
             return int(self)
         elif isnumber(self):
             return float(self)
         elif isinstance(self,Variable):
-            return Dic[self.char]
-        else: # for now we assume that this mean self is a tree
-            if self.op_symbol=='+':
-                return self.lhs.evaluate(Dic) + self.rhs.evaluate(Dic)
-            elif self.op_symbol=='-':
-                return self.lhs.evaluate(Dic) - self.rhs.evaluate(Dic)
-            elif self.op_symbol=='*':
-                return self.lhs.evaluate(Dic) * self.rhs.evaluate(Dic)
-            elif self.op_symbol=='/':
-                return self.lhs.evaluate(Dic) / self.rhs.evaluate(Dic)
-            elif self.op_symbol=='**':
-                return self.lhs.evaluate(Dic) ** self.rhs.evaluate(Dic)
+            if self.char in Dic:
+                return Dic[self.char]
+            else:
+                return self.char
+        # 2: Self is tree
+        else:
+            #2a: Both children can be evaluated to numbers
+            if isnumber(self.lhs.evaluate(Dic)) and isnumber(self.rhs.evaluate(Dic)):
+                if self.op_symbol=='+':
+                    return self.lhs.evaluate(Dic)+self.rhs.evaluate(Dic)
+                elif self.op_symbol=='-':
+                    return self.lhs.evaluate(Dic)-self.rhs.evaluate(Dic)
+                elif self.op_symbol=='*':
+                    return self.lhs.evaluate(Dic)*self.rhs.evaluate(Dic)
+                elif self.op_symbol=='/':
+                    return self.lhs.evaluate(Dic)/self.rhs.evaluate(Dic)
+                elif self.op_symbol=='**':
+                    return self.lhs.evaluate(Dic)**self.rhs.evaluate(Dic)
+            #2b: At least one child evaluates to a string
+            if isinstance(self.lhs.evaluate(Dic),str): # left side is a string
+                if isinstance(self.lhs,Variable): # left side is a variable not in dictionary
+                    Left=self.lhs.char
+                else: # left side is an expression with a variable not in dictionary
+                    if Prec[self.lhs.op_symbol]<Prec[self.op_symbol]:
+                        Left='('+self.lhs.evaluate(Dic)+')'
+                    else:
+                        Left=self.lhs.evaluate(Dic)
+            else: # left side is just a number
+                Left=str(self.lhs.evaluate(Dic))
+            if isinstance(self.rhs.evaluate(Dic),str): # right side is a string
+                if isinstance(self.rhs,Variable): # right side is a variable not in dictionary
+                    Right=self.rhs.char
+                else: # right side is an expression with a variable not in dictionary
+                    if Prec[self.rhs.op_symbol]<Prec[self.op_symbol]:
+                        Right='('+self.rhs.evaluate(Dic)+')'
+                    elif Prec[self.rhs.op_symbol]==Prec[self.op_symbol]:
+                        if self.rhs.op_symbol in ['-','/']:
+                            Right='('+self.rhs.evaluate(Dic)+')'
+                        else:
+                            Right=self.rhs.evaluate(Dic)
+                    else:
+                        Right=self.rhs.evaluate(Dic)
+            else: # right side is just a number
+                Right=str(self.rhs.evaluate(Dic))
+            return Left+' '+self.op_symbol+' '+Right # Returns a string
     #--------------------------END evaluate---------------------------------
     
 class Constant(Expression):
