@@ -163,7 +163,7 @@ class Expression():
     #-------------------------END fromString----------------------------------------
     
     #---------------------Differentiation function-------------------------------------
-        def diff(self, var):
+    def diff(self, var):
         if isint(self) or isnumber(self):
             return Constant(0)
         elif self != var and type(self) == Variable:
