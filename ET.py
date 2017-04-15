@@ -158,7 +158,31 @@ class Expression():
         # the resulting expression tree is what's left on the stack
         return stack[0]
     #-------------------------END fromString----------------------------------------
-
+    
+    #---------------------Differentiation function-------------------------------------
+        def diff(self, var):
+        if isint(self) or isnumber(self):
+            return Constant(0)
+        elif self != var and type(self) == Variable:
+            return Constant(0)
+        elif self == var:
+             return Constant(1)
+        # Sum rule
+        if self.op_symbol == '+':
+            return self.lhs.diff(var) + self.rhs.diff(var)
+        # Difference rule
+        if self.op_symbol == '-':
+            return self.lhs.diff(var) - self.rhs.diff(var)
+        # Product rule
+        if self.op_symbol == '*':
+            return (self.rhs * self.lhs.diff(var) ) + (self.rhs.diff(var) * self.lhs)
+        # Quotient rule
+        if self.op_symbol == '/':
+            return ((self.rhs * self.lhs.diff(var)) - (self.rhs.diff(var) * self.lhs)) / (self.rhs * self.rhs)
+        # Power rule
+        if self.op_symbol == '**':
+            return (self.rhs * (self.lhs**(self.rhs - 1)))  * self.lhs.diff(var)
+    #---------------------END Differentiation-------------------------------------
 
     #---------------------Evaluate function-------------------------------------
     # Evaluates the expression, values of variables are loaded through dictionary
