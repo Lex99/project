@@ -79,6 +79,9 @@ class Expression():
 
     def __pow__(self, other):
         return PowerNode(self, other)
+    
+    def __neg__(self):
+        return SubtractNode(Constant(0),self)
         
     
     #------------------basic Shunting-yard algorithm------------------------------
@@ -193,6 +196,9 @@ class Constant(Expression):
         
     def __str__(self):
         return str(self.value)
+    
+    def __neg__(self):
+        return Constant(-self.value)
         
     # allow conversion to numerical values
     def __int__(self):
@@ -208,6 +214,9 @@ class Variable(Expression):
         
     def __str__(self):
         return self.char
+    
+    def __neg__(self):
+        return Variable('-'+self.char)
         
 class BinaryNode(Expression):
     """A node in the expression tree representing a binary operator."""
@@ -242,18 +251,18 @@ class BinaryNode(Expression):
                      self.op_symbol==self.lhs.op_symbol and\
                      self.op_symbol==other.lhs.op_symbol: # This is the case: (a+b)+c=(x+y)+z (L-L)
                     return (self.lhs == other.lhs and self.rhs == other.rhs) or\
-                           (self.lhs == type(self)(other.lhs.lhs) and\
+                           (self.lhs == type(self)(other.lhs.lhs,other.rhs) and\
                            self.rhs == other.lhs.rhs) or\
-                           (self.lhs == type(self)(other.lhs.rhs) and\
+                           (self.lhs == type(self)(other.lhs.rhs.other.rhs) and\
                            self.rhs == other.lhs.lhs)
                 elif isinstance(self.rhs,BinaryNode) and isinstance(other.rhs,BinaryNode) and\
                      self.op_symbol==self.rhs.op_symbol and\
                      self.op_symbol==other.rhs.op_symbol: # This is the case: a+(b+c)=x+(y+z) (R-R)
                     return (self.lhs == other.lhs and self.rhs == other.rhs) or\
-                           (self.rhs == type(self)(other.rhs.lhs) and\
-                           self.lhs == other.lhs.rhs) or\
-                           (self.rhs == type(self)(other.rhs.rhs) and\
-                           self.lhs == other.lhs.lhs)
+                           (self.rhs == type(self)(other.rhs.lhs,other.lhs) and\
+                           self.lhs == other.rhs.rhs) or\
+                           (self.rhs == type(self)(other.rhs.rhs,other.lhs) and\
+                           self.lhs == other.rhs.lhs)
                 elif isinstance(self.lhs,BinaryNode) and isinstance(other.rhs,BinaryNode) and\
                      self.op_symbol==self.lhs.op_symbol and\
                      self.op_symbol==other.rhs.op_symbol: # This is the case: (a+b)+c=x+(y+z) (L-R)
@@ -270,7 +279,7 @@ class BinaryNode(Expression):
                            self.lhs == other.lhs.rhs) or\
                            (self.rhs == type(self)(other.lhs.rhs,other.rhs) and\
                            self.lhs == other.lhs.lhs)
-                else: # just commutative case
+                else: # This is the normal commutative case: a+b=z+y
                     return (self.lhs == other.lhs and self.rhs == other.rhs) or\
                            (self.lhs == other.rhs and self.rhs == other.lhs)
             else:
@@ -278,12 +287,10 @@ class BinaryNode(Expression):
         else:
             return False
             
-    def __str__(self):
+def __str__(self):
         lstring = str(self.lhs)
         rstring = str(self.rhs)
         Prec={'+':1,'-':1,'*':2,'/':2,'**':3,}
-        # To invert operators, which allows us to remove more brackets:
-        Invert={'+':'-','-':'+','*':'/','/':'*'} 
         oplist = ['+','-','*','/','**']
         
         # We don't need parenthesis in these cases (node is always internal):
@@ -296,12 +303,61 @@ class BinaryNode(Expression):
                 # If node is left node:
                     # No brackets
                 # If node is right node:
-                    # Invert node operator (+,-,*,/ to resp -,+,/,*)
-                    # No brackets
-
+                    # Brackets
+        # Simplifications:
+            # a + -b -> a-b (b is positive)
+            # a - -b -> a+b (b is positive, we do not change operator '-')
+            # a + -|...| -> a - |...| (|...| is an expression 0-|...|)
+            # a - -|...| -> a + |...| (|...| is an expression 0-|...|)
+            # 0 + a, a + 0 -> a
+            # 0 * a, a * 0 -> 0
+            # 1 * a, a * 1 -> a
+            # a**1 -> a
+            # 1**a -> 1
+            # a**0 -> 1
+            # 0**a -> 0
+            # we assume, for now, that things like: a/0 and 0**0 do not exist
         # Difference with previous algorithm: previous algorithm added brackets around
         # every parent and its children, this algorithm checks whether to add brackets
-        # around children only (so that the root has not brackets).
+        # around children only (so that the root has no brackets).
+        if self.lhs==Constant(0) and self.rhs==Constant(0): # We ignore 0**0 and 0/0
+            return str(0)
+        if self.lhs==Constant(0):
+            if self.op_symbol=='+': # 0+a=a
+                return str(self.rhs)
+            elif self.op_symbol in ['*','/','**']: # 0*a=0/a=0**a=0
+                return str(0)
+            elif self.op_symbol=='-': # 0-a=-a, 0-(...)=-(...)
+                if not isinstance(self.rhs,BinaryNode): 
+                    return str(-self.rhs)
+                else: # Expression
+                    return '-'+'('+str(self.rhs)+')'
+        if self.rhs==Constant(0): # We ignore a/0
+            if self.op_symbol in ['+','-']: # a+0=a-0=a
+                return str(self.lhs)
+            elif self.op_symbol=='*': # a*0=0
+                return str(0)
+            elif self.op_symbol=='**': # a**0=1
+                return str(1)
+        if self.lhs==Constant(1):
+            if self.op_symbol=='*': # 1*a=a
+                return str(self.rhs)
+            elif self.op_symbol=='**': # 1**a=1
+                return str(1)
+        if self.rhs==Constant(1):
+            if self.op_symbol in ['*','**']: # a*1=a**1=a
+                return str(self.lhs)
+        if isinstance(self.rhs,Constant) and self.rhs.value<0:
+            if self.op_symbol=='+': # a+-b=a-b
+                return str(SubtractNode(self.lhs,-self.rhs)) 
+            if self.op_symbol=='-': # a--b=a+b
+                return str(AddNode(self.lhs,-self.rhs))
+        if isinstance(self.rhs,SubtractNode) and self.rhs.lhs==Constant(0):
+            if self.op_symbol=='+': # a+-(b+c)=a-(b+c)
+                return str(SubtractNode(self.lhs,self.rhs.rhs))
+            if self.op_symbol=='-': # a--(b+c)=a+(b+c)
+                return str(AddNode(self.lhs,self.rhs.rhs))
+        # After dealing with 0's 1's and negations, we deal with brackets:
         if isinstance(self.lhs,BinaryNode): # left child is operator
             if Prec[self.lhs.op_symbol]<Prec[self.op_symbol]:
                 Left="(%s)" % (lstring)
