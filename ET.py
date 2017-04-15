@@ -181,7 +181,7 @@ class Expression():
             return ((self.rhs * self.lhs.diff(var)) - (self.rhs.diff(var) * self.lhs)) / (self.rhs * self.rhs)
         # Power rule
         if self.op_symbol == '**':
-            return (self.rhs * (self.lhs**(self.rhs - 1)))  * self.lhs.diff(var)
+            return (self.rhs * (self.lhs**(self.rhs - Constant(1))))  * self.lhs.diff(var)
     #---------------------END Differentiation-------------------------------------
 
     #---------------------Evaluate function-------------------------------------
