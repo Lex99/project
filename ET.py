@@ -409,7 +409,7 @@ class BinaryNode(Expression):
         else:
             return False
             
-def __str__(self):
+    def __str__(self):
         Left=''
         Right=''
         Prec={'+':1,'-':1,'*':2,'/':2,'**':3,}
