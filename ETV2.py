@@ -325,6 +325,15 @@ class Basic(Function):
                 return Constant(math.cos(Dic[self.varchar]))
             elif self.funchar=='log':
                 return Constant(math.log(Dic[self.varchar]))
+            elif self.funchar=='-sin':
+                return Constant(-math.sin(Dic[self.varchar]))
+            elif self.funchar=='-cos':
+                return Constant(-math.cos(Dic[self.varchar]))
+            elif self.funchar=='-log':
+                return Constant(-math.log(Dic[self.varchar]))
+            # In case of unknown function, return self, but this should be avoided
+            else:
+                return self
         else:
             return self
         
@@ -447,7 +456,6 @@ class BinaryNode(Expression):
         Right=''
         Prec={'+':1,'-':1,'*':2,'/':2,'**':3,}
         oplist = ['+','-','*','/','**']
-        #print('LR:',LS,RS,self.op_symbol)
         
         # Part 1: simplify situations where children stringify to 0, 1 or -1
         # Case: both children stringify to '0' or '0.0'
@@ -459,29 +467,22 @@ class BinaryNode(Expression):
 
         # Case: only left child stringifies to '0' or '0.0'
         if isint(LS) and int(float(LS))==0:
-            
             # Subcase: 0+a -> a
             if self.op_symbol=='+':
-                return RS
-            
+                return RS         
             # Subcase: 0*a,0/a,0**a -> 0
             elif self.op_symbol in ['*','/','**']: # 0*a=0/a=0**a=0
-                return str(0)
-            
+                return str(0)            
             # Subcase: 0-a -> -a
-            elif self.op_symbol=='-':
-                
+            elif self.op_symbol=='-':                
                 # Subsubcase: a is not a BinaryNode (constant,variable or function)
                 if not isinstance(self.rhs,BinaryNode):
-                    return str(-self.rhs)
-                
+                    return str(-self.rhs)                
                 # Subsubcase: a is BinaryNode
                 else:
-
                     # Subsubsubcase: a stringifies to expression
                     if isexp(RS):
                         return '-'+'('+RS+')'
-
                     # Subsubsubcase: a does not stringifies to expression
                     else:
                         if RS[0]=='-':
@@ -491,40 +492,33 @@ class BinaryNode(Expression):
 
         # Case: only right child stringifies to '0' or '0.0'
         if isint(RS) and int(float(RS))==0:
-
             # Subcase: a+0,a-0 -> a
             if self.op_symbol in ['+','-']:
                 return LS
-
             # Subcase: a*0 -> 0
             elif self.op_symbol=='*':
                 return str(0)
-
             # Subcase: a**0 -> 1
             elif self.op_symbol=='**':
                 return str(1)
 
         # Case: left child stringifies to '1' or '1.0'
         if isint(LS) and int(float(LS))==1:
-
             # Subcase: 1*a -> a
             if self.op_symbol=='*': 
                 return RS
-
             # Subcase: 1**a -> 1
             elif self.op_symbol=='**': 
                 return str(1)
 
         # Case: (only) right child stringifies to '1' or '1.0'       
         if isint(RS) and int(float(RS))==1:
-
             # Subcase: a*1,a/1,a**1 -> a (only subcase)
             if self.op_symbol in ['*','/','**']:
                 return LS
             
         # Case: left child stringifies to '-1' or '-1.0'
         if isint(LS) and int(float(LS))==-1:
-
             # Subcase: (-1)*a -> -a (only subcase)
             # Note: if a is BinaryNode, then (-1)*a -> -a -> 0-a, which is dealt with above
             if self.op_symbol=='*':
@@ -532,7 +526,6 @@ class BinaryNode(Expression):
             
         # Case: (only) right child stringifies to '-1' or '-1.0'   
         if isint(RS) and int(float(RS))==-1:
-
             # Subcase: a*(-1),a/(-1) -> -a
             if self.op_symbol in ['*','/']:
                 return(str(-self.rhs))
@@ -545,19 +538,15 @@ class BinaryNode(Expression):
 
             #Subcase: child operator has lower precedence than parent operator
             if Prec[self.lhs.op_symbol]<Prec[self.op_symbol]:
-
                 #Subsubcase: child stringifies to expression
                 if isexp(LS):
                     Left='('+LS+')'
-
                 #Subsubcase: child stringifies to number, constant or variable
                 else:
-                    Left=LS
-                    
+                    Left=LS                    
             # Subcase: both operators are '**'
             elif self.op_symbol=='**' and self.lhs.op_symbol=='**':
                 Left='('+LS+')'
-
             #Subcase: child operator has higher or equal precedence than parent operator (not both '**')
             else:
                 Left=LS
@@ -568,47 +557,36 @@ class BinaryNode(Expression):
 
         # Right child case: child is a BinaryNode
         if isinstance(self.rhs,BinaryNode):
-
             # Subcase: child stringifies to expression
-            if isexp(RS):
-                
+            if isexp(RS):                
                 # Subssubcase: child operator has lower or equal precedence than parent operator
                 if Prec[self.rhs.op_symbol]<Prec[self.op_symbol]:
                     Right='('+RS+')'
-
                 # Subsubcase: child operator has equal precedence as parent operator
                 elif Prec[self.rhs.op_symbol]==Prec[self.op_symbol]:
-
                     # Subsubsubcase: operator is '-', '/', '**'
                     if self.op_symbol in ['-','/','**']:
                         Right='('+RS+')'
-
                     # Subsubsubcase: operator is '+','*'
                     else:
                         Right=RS
-
                 # Subsubcase: child operator has higher precedence than parent operator
                 else:
                     Right=RS
-
             # Subcase: child stringifies to number, constant or variable
             else:
-
                 # Subsubcase: child stringifies to "positive" number, constant or variable
                 if ispos(RS):
                     Right=RS
-
                 # Subsubcase: child stringifies to "negative" number, constant or variable
                 else:
                     Right='('+RS+')'
 
         # Right child case: child is not a BinaryNode
         else:
-
             # Subcase: child is not positive and operator is '-' or '/'
             if not ispos(self.rhs) and self.op_symbol in ['+','-']:
                 Right='('+str(self.rhs)+')'
-
             # Subcase: other cases
             else:
                 Right=str(self.rhs)
@@ -655,6 +633,7 @@ class BinaryNode(Expression):
     # Uses recursion on children
     
     def evaluate(self,Dic={}):
+        
         # Case: children evaluate to numerical values (allowing for basic arithmetics)
         if isinstance(self.lhs.evaluate(Dic),Constant) and isinstance(self.rhs.evaluate(Dic),Constant):
             if isnumber(self.lhs.evaluate(Dic).value) and isnumber(self.rhs.evaluate(Dic).value):
