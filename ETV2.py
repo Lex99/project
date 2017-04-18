@@ -1,12 +1,12 @@
 import math
 
-# split a string into mathematical tokens
-# returns a list of numbers, operators, parantheses and commas
-# output will not contain spaces
+# Splits a string into mathematical tokens
+# Returns a list of numbers, operators, parenthesis and commas
+# Output will not contain spaces
 def tokenize(string):
     splitchars = list("+-*/(),")
     
-    # surrounds any splitchar by spaces, numbers are left alone:
+    # Surrounds any splitchar by spaces, numbers are left alone
     tokenstring = []
     for c in string:
         if c in splitchars:
@@ -14,10 +14,10 @@ def tokenize(string):
         else:
             tokenstring.append(c)
     tokenstring = ''.join(tokenstring)
-    #split on spaces - this gives us our tokens
+    # Splits on spaces - this gives us our tokens
     tokens = tokenstring.split()
     
-    #checks for double *'s and converts them to **'s:
+    # Checks for double *'s and converts them to **'s:
     ans = []
     for t in tokens:
         if len(ans) > 0 and t == ans[-1] == '*':
@@ -57,14 +57,13 @@ def isnumber(string):
     except Exception:
         return False
 
-# checks if numerical constant is positive, or non-numerical constant/value is negated (begins with '-')
+# Checks if numerical constant is positive, or non-numerical constant/value is negated (begins with '-')
 def ispos(string): 
     try:
         float(string)
         return float(string)>=0
     except Exception:
         return not str(string)[0]=='-'
-    # TODO: check if this also works with expression trees
 
 # Represents an expression tree or an constant, variable or basic function
 class Expression():
@@ -91,69 +90,66 @@ class Expression():
     #---Shunting-yard algorithm-------------------------------------------------
     
     def fromString(string):
-        # split into tokens
+        # Splits into tokens
         tokens = tokenize(string)
         
-        # stack used by the Shunting-Yard algorithm
+        # Stack used by the Shunting-Yard algorithm
         stack = []
-        # output of the algorithm: a list representing the formula in RPN
-        # this will contain Constant's and operators
+        # Output of the algorithm: a list representing the formula in RPN
+        # This will contain Constant's and operators
         output = []
         
-        # list of operators
+        # List of operators
         oplist = ['+','-','*','/','**']
 
-        # precedence of operators ('(' has value 0, so that the stack
-        # is treated as 'empty' if '(' is on top of the stack)
+        # Precedence of operators, '(' has value 0, so that the stack is treated as 'empty' if '(' is on top of the stack
         Prec={'(':0,'+':1,'-':1,'*':2,'/':2,'**':3,}
         
         for token in tokens:
             
-            # numbers go directly to the output
+            # Numbers go directly to the output
             if isnumber(token):
                 if isint(token):
                     output.append(Constant(int(token)))
                 else:
                     output.append(Constant(float(token)))
                     
-            # operators will be compared (+,- < *,/ < **)
+            # Operators will be compared (+,- < *,/ < **)
             elif token in oplist:
                 while True:
-                    # we push operator if stack is empty,
-                    # or if operator has higher precedence than
-                    # top operator in stack (we break from while-loop):
+                    # Pushes operator (and break from loop) if:
+                    # Stack is empty
+                    # Operator has higher precedence than top operator in stack
                     if stack==[] or Prec[stack[-1]]<Prec[token]:
                         break
-                    # if Prec(stack[-1])>=Prec(token) we pop stack to
-                    # output and go back to while-loop
+                    # If Prec(stack[-1])>=Prec(token) we pop stack to output and go back to while-loop
                     output.append(stack.pop())
-                # the while-loop is broken and we finally push operator
                 stack.append(token)
 
-            # left parenthesis     
+            # Left parenthesis is added to top of the stack    
             elif token == '(':
                 stack.append(token)
                 
-            # right parenthesis
+            # Right parenthesis:
             elif token == ')':
-                # right parenthesis: pop everything until left parenthesis to the output
+                # Pops everything to output until left parenthesis
                 while not stack[-1] == '(':
                     output.append(stack.pop())
-                # remove left parenthesis '('
+                # Removes left parenthesis '('
                 stack.pop()
                 
             # We might find an unknown token:
             else:
                 raise ValueError('Unknown token: %s' % token)
             
-        # pop any tokens still on the stack to the output
+        # Pops any tokens still on the stack to the output
         while len(stack) > 0:
             output.append(stack.pop())
         
-        # convert RPN to an actual expression tree
+        # Converts RPN to an actual expression tree
         for t in output:
             if t in oplist:
-                # let eval and operator overloading take care of figuring out what to do
+                # Lets eval and operator overloading take care of figuring out what to do
                 y = stack.pop()
                 x = stack.pop()
                 stack.append(eval('x %s y' % t))
@@ -161,7 +157,7 @@ class Expression():
                 # a constant, push it to the stack
                 stack.append(t)
                 
-        # the resulting expression tree is what's left on the stack
+        # The resulting expression tree is what's left on the stack
         return stack[0]
     
     #---END Shunting-yard algorithm---------------------------------------------------------------
