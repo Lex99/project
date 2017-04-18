@@ -601,7 +601,12 @@ class BinaryNode(Expression):
     # Uses recursion and basic differentiation rules
     # Note: at the moment we cannot deal with expressions a**x, where x is not a constant
     
-    def diff(self,var):
+    def diff(self,var):       
+        # conversion python numbers to our classes.
+        if type(self.lhs) == int or type(self.lhs) == float:
+            self.lhs = Constant(self.lhs)
+        if type(self.rhs) == int or type(self.rhs) == float:
+            self.rhs = Constant(self.rhs)
         
         # Sum rule
         if self.op_symbol == '+':
